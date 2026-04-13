@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Playing — N64 Vault</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c26;
+    --border: rgba(255,255,255,0.08);
+    --accent: #7c5cfc;
+    --text: #f0f0f8;
+    --muted: #6b6b80;
+    --green: #3dffa0;
+    --red: #fc5c7d;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Orbitron:wght@700;900&display=swap');
+
+  header {
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,15,0.95);
+    flex-shrink: 0;
+  }
+
+  .logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #7c5cfc, #fc5c7d);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-decoration: none;
+  }
+
+  .header-center {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 0.45rem 1rem;
+    border-radius: 2rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn.outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn.outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.danger { background: var(--red); }
+  .btn.success { background: #1a5c38; color: var(--green); border: 1px solid rgba(61,255,160,0.3); }
+
+  .save-status {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 2rem;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .save-status .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+
+  .save-status.saved .dot { background: var(--green); }
+  .save-status.saved { color: var(--green); border-color: rgba(61,255,160,0.3); }
+  .save-status.saving .dot { background: #fcbe5c; animation: pulse 0.8s infinite; }
+
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+  .emulator-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  #game-container {
+    width: 100%;
+    max-width: 960px;
+    aspect-ratio: 4/3;
+    background: #000;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    position: relative;
+  }
+
+  #loading-screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    gap: 1rem;
+    z-index: 10;
+  }
+
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #loading-screen p {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .controls-bar {
+    width: 100%;
+    max-width: 960px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .controls-left, .controls-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .controls-hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  kbd {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.7rem;
+    font-family: monospace;
+  }
+
+  /* no rom screen */
+  #no-rom-screen {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: var(--surface);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  #no-rom-screen h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+  }
+
+  #no-rom-screen p { color: var(--muted); font-size: 0.9rem; max-width: 360px; }
+
+  .toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.85rem;
+    color: var(--text);
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">N64 Vault</a>
+  <span class="header-center" id="game-title">Loading...</span>
+  <div class="header-right">
+    <div class="save-status" id="save-status">
+      <span class="dot"></span>
+      <span id="save-status-text">Not signed in</span>
+    </div>
+    <button class="btn success" onclick="saveToCloud()" id="save-btn" style="display:none">Save to cloud</button>
+    <button class="btn outline" onclick="loadFromCloud()" id="load-btn" style="display:none">Load save</button>
+  </div>
+</header>
+
+<div class="emulator-wrap">
+  <div id="game-container">
+    <div id="loading-screen">
+      <div class="spinner"></div>
+      <p>Loading emulator...</p>
+    </div>
+    <div id="no-rom-screen">
+      <h2>No ROM loaded</h2>
+      <p>Go back to the library and click a game to load your ROM file.</p>
+      <a href="index.html" class="btn">Back to library</a>
+    </div>
+    <div id="emulator-host"></div>
+  </div>
+
+  <div class="controls-bar">
+    <div class="controls-left">
+      <span class="controls-hint">Move: <kbd>WASD</kbd> / <kbd>Arrow keys</kbd></span>
+      <span class="controls-hint" style="margin-left:0.75rem">A: <kbd>Z</kbd> · B: <kbd>X</kbd> · Start: <kbd>Enter</kbd></span>
+    </div>
+    <div class="controls-right">
+      <span class="controls-hint">Full screen: <kbd>F</kbd></span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+  import { getFirestore, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+  // REPLACE with your Firebase config
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  window._auth = auth;
+  window._db = db;
+  window._doc = doc;
+  window._setDoc = setDoc;
+  window._getDoc = getDoc;
+
+  onAuthStateChanged(auth, user => {
+    window._currentUser = user || null;
+    const statusEl = document.getElementById('save-status');
+    const textEl = document.getElementById('save-status-text');
+    const saveBtn = document.getElementById('save-btn');
+    const loadBtn = document.getElementById('load-btn');
+    if (user) {
+      textEl.textContent = 'Signed in';
+      statusEl.classList.add('saved');
+      saveBtn.style.display = 'inline-flex';
+      loadBtn.style.display = 'inline-flex';
+    } else {
+      textEl.textContent = 'Not signed in';
+      statusEl.classList.remove('saved');
+      saveBtn.style.display = 'none';
+      loadBtn.style.display = 'none';
+    }
+  });
+</script>
+
+<!-- EmulatorJS -->
+<script src="https://cdn.jsdelivr.net/npm/emulatorjs@latest/data/loader.js"></script>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const gameId = params.get('game') || 'unknown';
+
+  const gameNames = {
+    sm64:  'Super Mario 64',
+    zelda: 'The Legend of Zelda: Ocarina of Time',
+    mk64:  'Mario Kart 64',
+  };
+
+  document.getElementById('game-title').textContent = gameNames[gameId] || 'N64 Game';
+  document.title = (gameNames[gameId] || 'N64') + ' — N64 Vault';
+
+  // Load ROM from sessionStorage
+  const pending = sessionStorage.getItem('pending_rom');
+
+  if (!pending) {
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('no-rom-screen').style.display = 'flex';
+  } else {
+    const romInfo = JSON.parse(pending);
+    sessionStorage.removeItem('pending_rom');
+
+    // Convert array back to Uint8Array → Blob → Object URL
+    const romBytes = new Uint8Array(romInfo.data);
+    const blob = new Blob([romBytes], { type: 'application/octet-stream' });
+    const romUrl = URL.createObjectURL(blob);
+
+    // Check for cloud save to auto-load
+    async function getCloudSave() {
+      if (!window._currentUser || !window._db) return null;
+      try {
+        const ref = window._doc(window._db, 'saves', window._currentUser.uid, 'games', gameId);
+        const snap = await window._getDoc(ref);
+        if (snap.exists()) return snap.data().saveData;
+      } catch(e) {}
+      return null;
+    }
+
+    // Init EmulatorJS
+    window.EJS_player = '#emulator-host';
+    window.EJS_core = 'n64';
+    window.EJS_gameUrl = romUrl;
+    window.EJS_pathtodata = 'https://cdn.jsdelivr.net/npm/emulatorjs@latest/data/';
+
+    // 60fps settings
+    window.EJS_defaultOptions = {
+      'fps': 60,
+    };
+
+    window.EJS_onGameStart = async function() {
+      document.getElementById('loading-screen').style.display = 'none';
+
+      // Try to restore cloud save
+      const cloudSave = await getCloudSave();
+      if (cloudSave) {
+        try {
+          const saveBytes = Uint8Array.from(atob(cloudSave), c => c.charCodeAt(0));
+          window.EJS_emulator.gameManager.FS.writeFile('/data/saves/' + romInfo.name + '.srm', saveBytes);
+          showToast('☁️ Cloud save restored');
+          setSaveStatus('saved', 'Cloud save loaded');
+        } catch(e) {
+          console.warn('Could not restore cloud save:', e);
+        }
+      }
+    };
+
+    // Auto-save every 2 minutes if signed in
+    setInterval(() => {
+      if (window._currentUser && window.EJS_emulator) {
+        autoSave();
+      }
+    }, 120000);
+  }
+
+  async function saveToCloud() {
+    if (!window._currentUser) { showToast('Sign in to save to cloud'); return; }
+    if (!window.EJS_emulator) { showToast('Game not loaded yet'); return; }
+
+    setSaveStatus('saving', 'Saving...');
+    try {
+      let saveData = null;
+      try {
+        const files = window.EJS_emulator.gameManager.FS.readdir('/data/saves/');
+        if (files && files.length > 2) {
+          const savePath = '/data/saves/' + files.find(f => f !== '.' && f !== '..');
+          const bytes = window.EJS_emulator.gameManager.FS.readFile(savePath);
+          saveData = btoa(String.fromCharCode(...bytes));
+        }
+      } catch(e) {}
+
+      // Also save state
+      const stateData = window.EJS_emulator.gameManager.saveState ? 
+        window.EJS_emulator.gameManager.saveState() : null;
+
+      const ref = window._doc(window._db, 'saves', window._currentUser.uid, 'games', gameId);
+      await window._setDoc(ref, {
+        saveData: saveData,
+        stateData: stateData ? btoa(String.fromCharCode(...new Uint8Array(stateData))) : null,
+        savedAt: new Date().toISOString(),
+        gameName: gameNames[gameId] || gameId,
+      });
+
+      setSaveStatus('saved', 'Saved to cloud');
+      showToast('✅ Saved to cloud');
+    } catch(e) {
+      setSaveStatus('', 'Save failed');
+      showToast('❌ Save failed: ' + e.message);
+    }
+  }
+
+  async function autoSave() {
+    try {
+      await saveToCloud();
+    } catch(e) {}
+  }
+
+  async function loadFromCloud() {
+    if (!window._currentUser) { showToast('Sign in to load cloud saves'); return; }
+    if (!window.EJS_emulator) { showToast('Game not loaded yet'); return; }
+
+    setSaveStatus('saving', 'Loading save...');
+    try {
+      const ref = window._doc(window._db, 'saves', window._currentUser.uid, 'games', gameId);
+      const snap = await window._getDoc(ref);
+      if (!snap.exists()) { showToast('No cloud save found'); return; }
+
+      const data = snap.data();
+      if (data.stateData) {
+        const bytes = Uint8Array.from(atob(data.stateData), c => c.charCodeAt(0));
+        window.EJS_emulator.gameManager.loadState(bytes.buffer);
+        setSaveStatus('saved', 'Save loaded');
+        showToast('☁️ Cloud save loaded');
+      } else {
+        showToast('Save found but no state data');
+      }
+    } catch(e) {
+      showToast('❌ Load failed: ' + e.message);
+    }
+  }
+
+  function setSaveStatus(type, text) {
+    const el = document.getElementById('save-status');
+    const textEl = document.getElementById('save-status-text');
+    el.className = 'save-status ' + type;
+    textEl.textContent = text;
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  // Expose for header buttons
+  window.saveToCloud = saveToCloud;
+  window.loadFromCloud = loadFromCloud;
+
+  // Fullscreen shortcut
+  document.addEventListener('keydown', e => {
+    if (e.key === 'f' || e.key === 'F') {
+      const c = document.getElementById('game-container');
+      if (document.fullscreenElement) document.exitFullscreen();
+      else c.requestFullscreen();
+    }
+  });
+</script>
+
+</body>
+</html>

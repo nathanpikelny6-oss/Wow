@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>N64 Vault</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Orbitron:wght@700;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c26;
+    --border: rgba(255,255,255,0.08);
+    --accent: #7c5cfc;
+    --accent2: #fc5c7d;
+    --text: #f0f0f8;
+    --muted: #6b6b80;
+    --green: #3dffa0;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+  }
+
+  header {
+    padding: 2rem 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: rgba(10,10,15,0.92);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.4rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  #user-badge {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2rem;
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  #user-badge .dot {
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+  }
+
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1.2rem;
+    border-radius: 2rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn:active { transform: scale(0.97); }
+  .btn.outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn.outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  .hero {
+    padding: 4rem 2.5rem 3rem;
+    max-width: 900px;
+  }
+
+  .hero h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+  }
+
+  .hero h1 span {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero p {
+    color: var(--muted);
+    font-size: 1.05rem;
+    max-width: 520px;
+    line-height: 1.7;
+  }
+
+  .notice {
+    margin: 0 2.5rem;
+    padding: 0.9rem 1.25rem;
+    background: rgba(124,92,252,0.08);
+    border: 1px solid rgba(124,92,252,0.25);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    max-width: 700px;
+  }
+
+  .notice strong { color: var(--accent); }
+
+  .games-section {
+    padding: 3rem 2.5rem;
+  }
+
+  .section-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .game-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
+  .game-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+  }
+
+  .game-thumb {
+    width: 100%;
+    aspect-ratio: 16/10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .game-thumb.sm64 { background: linear-gradient(135deg, #1a0a2e, #2d1a5e); }
+  .game-thumb.zelda { background: linear-gradient(135deg, #0a1a0a, #1a3a1a); }
+  .game-thumb.mk64 { background: linear-gradient(135deg, #1a0a0a, #3a1010); }
+
+  .game-thumb-icon {
+    font-size: 3.5rem;
+    filter: drop-shadow(0 0 20px rgba(255,255,255,0.2));
+  }
+
+  .fps-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--green);
+    color: #000;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  .game-info {
+    padding: 1rem 1.1rem 1.1rem;
+  }
+
+  .game-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+  }
+
+  .game-meta {
+    font-size: 0.8rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .save-indicator {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: var(--green);
+  }
+
+  .save-indicator.visible { display: flex; }
+
+  .save-indicator::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+  }
+
+  .game-card .play-btn {
+    width: 100%;
+    margin-top: 0.75rem;
+    border-radius: 8px;
+    padding: 0.6rem;
+    font-size: 0.85rem;
+    display: block;
+    text-align: center;
+    background: rgba(124,92,252,0.12);
+    border: 1px solid rgba(124,92,252,0.3);
+    color: var(--accent);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .game-card .play-btn:hover { background: rgba(124,92,252,0.25); }
+
+  /* Auth modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    width: 90%;
+    max-width: 380px;
+  }
+
+  .modal h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .modal p {
+    color: var(--muted);
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+  }
+
+  .modal input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.7rem 1rem;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .modal input:focus { border-color: var(--accent); }
+
+  .modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .modal-actions .btn { flex: 1; padding: 0.65rem; }
+
+  .modal-error {
+    color: var(--accent2);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    display: none;
+  }
+
+  .modal-toggle {
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .modal-toggle a {
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  footer {
+    padding: 2rem 2.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.8rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">N64 Vault</div>
+  <div class="header-right">
+    <div id="user-badge">
+      <span class="dot"></span>
+      <span id="user-email-display">user@email.com</span>
+    </div>
+    <button class="btn outline" id="auth-btn" onclick="openAuth()">Sign in</button>
+    <button class="btn outline" id="signout-btn" style="display:none" onclick="signOut()">Sign out</button>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Play N64 classics<br><span>in your browser</span></h1>
+  <p>Run your own ROM files at 60fps with cloud save syncing across devices. No downloads, no installs.</p>
+</div>
+
+<div class="notice">
+  <strong>Bring your own ROMs.</strong> This site does not host or distribute ROM files. Load your own legally-owned ROM from your device — it never leaves your browser.
+</div>
+
+<div class="games-section">
+  <div class="section-label">N64 Library</div>
+  <div class="games-grid">
+
+    <div class="game-card" onclick="launchGame('sm64')">
+      <div class="game-thumb sm64">
+        <span class="game-thumb-icon">⭐</span>
+        <span class="fps-badge">60 FPS</span>
+      </div>
+      <div class="game-info">
+        <div class="game-title">Super Mario 64</div>
+        <div class="game-meta">
+          <span>Nintendo 64 · 1996</span>
+          <span class="save-indicator" id="save-sm64">Cloud save</span>
+        </div>
+        <button class="play-btn">Load ROM &amp; Play</button>
+      </div>
+    </div>
+
+    <div class="game-card" onclick="launchGame('zelda')">
+      <div class="game-thumb zelda">
+        <span class="game-thumb-icon">🗡️</span>
+        <span class="fps-badge">60 FPS</span>
+      </div>
+      <div class="game-info">
+        <div class="game-title">The Legend of Zelda: Ocarina of Time</div>
+        <div class="game-meta">
+          <span>Nintendo 64 · 1998</span>
+          <span class="save-indicator" id="save-zelda">Cloud save</span>
+        </div>
+        <button class="play-btn">Load ROM &amp; Play</button>
+      </div>
+    </div>
+
+    <div class="game-card" onclick="launchGame('mk64')">
+      <div class="game-thumb mk64">
+        <span class="game-thumb-icon">🏎️</span>
+        <span class="fps-badge">60 FPS</span>
+      </div>
+      <div class="game-info">
+        <div class="game-title">Mario Kart 64</div>
+        <div class="game-meta">
+          <span>Nintendo 64 · 1996</span>
+          <span class="save-indicator" id="save-mk64">Cloud save</span>
+        </div>
+        <button class="play-btn">Load ROM &amp; Play</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Hidden file input -->
+<input type="file" id="rom-input" accept=".n64,.z64,.v64,.rom" style="display:none">
+
+<!-- Auth Modal -->
+<div class="modal-overlay" id="auth-modal">
+  <div class="modal">
+    <h2 id="modal-title">Sign in</h2>
+    <p id="modal-desc">Sign in to sync your save files across devices with Firebase.</p>
+    <input type="email" id="auth-email" placeholder="Email address">
+    <input type="password" id="auth-password" placeholder="Password">
+    <div class="modal-error" id="auth-error"></div>
+    <div class="modal-actions">
+      <button class="btn outline" onclick="closeAuth()">Cancel</button>
+      <button class="btn" id="modal-submit-btn" onclick="submitAuth()">Sign in</button>
+    </div>
+    <div class="modal-toggle">
+      <span id="modal-toggle-text">Don't have an account?</span>
+      <a onclick="toggleAuthMode()"> <span id="modal-toggle-link">Create one</span></a>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut as fbSignOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+  import { getFirestore, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+  // REPLACE with your Firebase config from console.firebase.google.com
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  window._auth = auth;
+  window._db = db;
+  window._fbSignOut = fbSignOut;
+  window._signIn = signInWithEmailAndPassword;
+  window._signUp = createUserWithEmailAndPassword;
+  window._doc = doc;
+  window._setDoc = setDoc;
+  window._getDoc = getDoc;
+
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      document.getElementById('user-badge').style.display = 'flex';
+      document.getElementById('user-email-display').textContent = user.email;
+      document.getElementById('auth-btn').style.display = 'none';
+      document.getElementById('signout-btn').style.display = 'inline-flex';
+      ['sm64','zelda','mk64'].forEach(id => {
+        const el = document.getElementById('save-' + id);
+        if (el) el.classList.add('visible');
+      });
+      window._currentUser = user;
+    } else {
+      document.getElementById('user-badge').style.display = 'none';
+      document.getElementById('auth-btn').style.display = 'inline-flex';
+      document.getElementById('signout-btn').style.display = 'none';
+      ['sm64','zelda','mk64'].forEach(id => {
+        const el = document.getElementById('save-' + id);
+        if (el) el.classList.remove('visible');
+      });
+      window._currentUser = null;
+    }
+  });
+</script>
+
+<script>
+  let authMode = 'signin';
+  let pendingGame = null;
+
+  const games = {
+    sm64:  { name: 'Super Mario 64',                   core: 'n64' },
+    zelda: { name: 'Zelda: Ocarina of Time',           core: 'n64' },
+    mk64:  { name: 'Mario Kart 64',                    core: 'n64' },
+  };
+
+  function launchGame(id) {
+    pendingGame = id;
+    document.getElementById('rom-input').click();
+  }
+
+  document.getElementById('rom-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file || !pendingGame) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const romData = ev.target.result;
+      sessionStorage.setItem('pending_rom', JSON.stringify({
+        name: file.name,
+        data: Array.from(new Uint8Array(romData)),
+        gameId: pendingGame
+      }));
+      window.location.href = 'play.html?game=' + pendingGame;
+    };
+    reader.readAsArrayBuffer(file);
+    this.value = '';
+  });
+
+  function openAuth() { document.getElementById('auth-modal').classList.add('open'); }
+  function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); }
+
+  function toggleAuthMode() {
+    authMode = authMode === 'signin' ? 'signup' : 'signin';
+    const isSignIn = authMode === 'signin';
+    document.getElementById('modal-title').textContent = isSignIn ? 'Sign in' : 'Create account';
+    document.getElementById('modal-desc').textContent = isSignIn
+      ? 'Sign in to sync your save files across devices with Firebase.'
+      : 'Create a free account to enable cloud save syncing.';
+    document.getElementById('modal-submit-btn').textContent = isSignIn ? 'Sign in' : 'Create account';
+    document.getElementById('modal-toggle-text').textContent = isSignIn ? "Don't have an account?" : 'Already have an account?';
+    document.getElementById('modal-toggle-link').textContent = isSignIn ? 'Create one' : 'Sign in';
+    document.getElementById('auth-error').style.display = 'none';
+  }
+
+  async function submitAuth() {
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+    const errEl = document.getElementById('auth-error');
+    errEl.style.display = 'none';
+    if (!email || !password) { showError('Please fill in all fields.'); return; }
+    try {
+      if (authMode === 'signin') {
+        await window._signIn(window._auth, email, password);
+      } else {
+        await window._signUp(window._auth, email, password);
+      }
+      closeAuth();
+    } catch(err) {
+      showError(err.message.replace('Firebase: ', '').replace(/ \(auth.*\)/, ''));
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('auth-error');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  async function signOut() {
+    await window._fbSignOut(window._auth);
+  }
+</script>
+
+<footer>
+  <span>N64 Vault — Browser emulation powered by EmulatorJS</span>
+  <span>Cloud saves via Firebase · ROMs not included or hosted</span>
+</footer>
+
+</body>
+</html>
